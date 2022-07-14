@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+ACTION=${1:-"create"}
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+# set max cores to count of available cores
+MAX_CORES=$(sysctl -n hw.ncpu)
+# set max ram to 75% of available memory
+MAX_RAM=$(expr $(sysctl -n hw.memsize) / $((1024**3)) / 4 \* 3)
+
+case $ACTION in
+  create) 
+    minikube start \
+      --cpus="$MAX_CORES" \
+      --disk-size='100g' \
+      --driver='hyperkit' \
+      --kubernetes-version='stable' \
+      --memory="$MAX_RAM" \
+      --nodes=1
+
+    # running multiple nodes can have issues with pv permissions
+    # https://github.com/kubernetes/minikube/issues/12360
+
+    minikube addons enable ingress
+
+    ;;
+  delete|destroy) 
+    minikube delete
+    ;;
+  *)
+    echo "unrecognied action"
+    exit 0
+    ;;
+esac

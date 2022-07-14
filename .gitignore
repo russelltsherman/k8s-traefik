@@ -1,0 +1,17 @@
+# ignore build harness
+*build-harness
+
+# ignore direnv vars
+.vars
+
+# ignore src directory
+src
+
+# ignore Brewfile.lock
+Brewfile.lock*
+
+# ignore helm chart default values
+helm/**/*-values.yaml
+
+# ignore certs dir
+.certs
