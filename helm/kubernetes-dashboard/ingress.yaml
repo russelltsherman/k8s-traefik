@@ -1,0 +1,24 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: opsbots
+  name: kubernetes-dashboard
+  namespace: kubernetes-dashboard
+spec:
+  rules:
+    - host: kubernetes-dashboard.minikube.local
+      http:
+        paths:
+          - backend:
+              service:
+                name: kubernetes-dashboard
+                port:
+                  number: 8443
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - kubernetes-dashboard.minikube.local
+      secretName: kubernetes-dashboard-minikube-local-tls

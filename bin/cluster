@@ -6,27 +6,75 @@ PROJECT_ROOT=$(git rev-parse --show-toplevel)
 MAX_CORES=$(sysctl -n hw.ncpu)
 # set max ram to 75% of available memory
 MAX_RAM=$(expr $(sysctl -n hw.memsize) / $((1024**3)) / 4 \* 3)
+PROFILE="k8s-traefik"
 
 case $ACTION in
   create) 
+
     minikube start \
-      --cpus="$MAX_CORES" \
-      --disk-size='100g' \
-      --driver='hyperkit' \
-      --kubernetes-version='stable' \
-      --memory="$MAX_RAM" \
-      --nodes=1
+      --cpus "$MAX_CORES" \
+      --disk-size '100g' \
+      --driver 'hyperkit' \
+      --kubernetes-version 'stable' \
+      --memory "${MAX_RAM}g" \
+      --nodes 1 \
+      --profile $PROFILE
 
     # running multiple nodes can have issues with pv permissions
     # https://github.com/kubernetes/minikube/issues/12360
 
-    minikube addons enable ingress
+    # Create Private Certificate Signing Authority
+    # "$HOME"/bin/ca
+
+    # Install MetalLB
+    minikube addons enable metallb --profile $PROFILE
+    # make -C "$PROJECT_ROOT"/helm/metallb deploy
+    # installed from helm chart does not assign lb ip address to traefik
+
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config
+  namespace: metallb-system
+data:
+  config: |
+    address-pools:
+      - name: default
+        protocol: layer2
+        addresses:
+          - 192.168.64.150-192.168.64.200
+EOF
+
+    # minikube addons enable ingress --profile $PROFILE
+
+    # Install traefik
+    make -C "$PROJECT_ROOT"/helm/traefik deploy
 
     ;;
-  delete|destroy) 
-    minikube delete
+
+  dashboard)
+
+    TOKENNAME=$(kubectl -n kube-system get serviceaccount/dashboard-admin -o jsonpath='{.secrets[0].name}')
+    TOKEN=$(kubectl -n kube-system get secret "$TOKENNAME" -o jsonpath='{.data.token}' | base64 --decode)
+
+    echo "$TOKEN"
+
+    open https://kubernetes-dashboard.minikube.local/
     ;;
+
+  delete|destroy) 
+
+    minikube delete --profile=$PROFILE  
+    ;;
+
+  ip)
+
+    minikube ip --profile=$PROFILE
+    ;;
+
   *)
+
     echo "unrecognied action"
     exit 0
     ;;

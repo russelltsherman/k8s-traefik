@@ -46,7 +46,8 @@ install:
 		--namespace $(NAMESPACE) \
 		--timeout 10m \
 		--values $(MODULE)/overrides.yaml \
-		--version $(VERSION) 	
+		--version $(VERSION) \
+		--wait
 _PHONY: install
 
 manifest:
